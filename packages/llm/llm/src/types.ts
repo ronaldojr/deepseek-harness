@@ -184,6 +184,12 @@ export interface LlmConfigurableProvider {
    * from outside.
    */
   declared?: boolean
+  /**
+   * Whether the adapter ships an OAuth login method for this route, so
+   * configuration surfaces can offer a connect flow beside the API-key
+   * field. False (never absent) means the route authenticates by key alone.
+   */
+  oauth?: boolean
 }
 
 /**

@@ -183,6 +183,17 @@ function scriptedFace(overrides: {
 
 type WireFace = ConstructorParameters<typeof ModelsSettingsStore>[0]
 
+/** Inert OAuth face: no provider under test is OAuth-connected. */
+const oauthFace: ModelsSectionInjected['oauth'] = {
+  subscribe: () => () => {},
+  get: () => undefined,
+  load: async () => {},
+  login: async () => undefined,
+  cancel: async () => {},
+  disconnect: async () => undefined,
+  publish: () => {},
+}
+
 async function mountFace(scripted: ReturnType<typeof scriptedFace>) {
   const { face, update, replace, mutate, set, unset } = scripted
   const controller = new ModelsSettingsStore(face as unknown as WireFace)
@@ -191,6 +202,7 @@ async function mountFace(scripted: ReturnType<typeof scriptedFace>) {
     controller,
     useSnapshot: bindSnapshotSelector(controller.store),
     api: face as never,
+    oauth: oauthFace,
     t,
   }
   const view = render(<ModelsSection {...injected} />)

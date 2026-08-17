@@ -673,3 +673,46 @@ select.input {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+
+/* The OAuth connect area: sign-in button, device-code panel, live states. */
+.oauthPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 8px;
+}
+
+.oauthTitle {
+  margin: 0;
+  font-weight: 600;
+}
+
+.oauthHint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.oauthRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.oauthLink {
+  flex: 1 1 auto;
+  font-family: var(--ds-font-family-code);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.oauthCode {
+  font-family: var(--ds-font-family-code);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}

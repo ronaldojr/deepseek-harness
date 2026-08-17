@@ -32,6 +32,9 @@
       "path": "../../llm/llm"
     },
     {
+      "path": "../../llm/llm-oauth"
+    },
+    {
       "path": "../../preset/agent-presets"
     },
     {

@@ -21,6 +21,7 @@ import { CustomProviderCard } from './CustomProviderCard.tsx'
 import { deriveKeyRef, messageOf, protocolChoices, providerUsable } from './store.ts'
 import type { ModelsSettingsState, ModelsSettingsStore, ProviderRow } from './store.ts'
 import { ProviderEditor, type ProviderEditorProps } from './ProviderEditor.tsx'
+import type { OauthView } from './oauth-store.ts'
 import type { en } from './locales.ts'
 import styles from './ModelsSection.module.css'
 
@@ -32,6 +33,8 @@ export interface ModelsSectionInjected {
   useSnapshot: SnapshotSelectorHook<ModelsSettingsState>
   /** Wire faces the editor writes through. */
   api: Pick<IApiClient, 'settings' | 'credentials' | 'llm'>
+  /** Live OAuth connection states and their remote actions. */
+  oauth: OauthView
   /** Section copy. */
   t: (key: keyof typeof en) => string
 }
@@ -58,12 +61,14 @@ interface EditorTarget extends ProviderIdentity {
   credentialRef?: string
   /** The adapter reports this route as one it does not ship (see {@link ProviderEditorProps.declared}). */
   declared?: boolean
+  /** The adapter ships an OAuth login method for this route. */
+  oauth?: boolean
 }
 
 /** Values that vary around the shared provider-editor rendering. */
 interface ProviderEditorRenderProps extends Pick<
   ProviderEditorProps,
-  'namespace' | 'api' | 't' | 'readOnly' | 'onClose'
+  'namespace' | 'api' | 't' | 'readOnly' | 'oauthStore' | 'onClose'
 > {
   target: EditorTarget
 }
@@ -76,6 +81,7 @@ function renderProviderEditor({ target, ...props }: ProviderEditorRenderProps): 
       displayName={target.displayName}
       settingsPath={target.settingsPath}
       {...target.declared === true ? { declared: true } : {}}
+      {...target.oauth === true ? { oauth: true } : {}}
       {...props}
     />
   )
@@ -148,6 +154,7 @@ function targetOf(row: ProviderRow): EditorTarget {
     // route-level fields only a declared route owns off the card, exactly as
     // it leaves the custom tag off the row.
     ...row.entry.declared === true ? { declared: true } : {},
+    ...row.entry.oauth === true ? { oauth: true } : {},
   }
 }
 
@@ -163,19 +170,30 @@ export function providerCopy(template: string, target: ProviderIdentity): string
   return template.replace('{provider}', () => providerTargetLabel(target))
 }
 
+/** Inert OAuth face for compositions and tests that mount no OAuth service. */
+const INERT_OAUTH: OauthView = {
+  subscribe: () => () => {},
+  get: () => undefined,
+  load: () => Promise.resolve(),
+  login: () => Promise.resolve(undefined),
+  cancel: () => Promise.resolve(),
+  disconnect: () => Promise.resolve(undefined),
+  publish: () => {},
+}
+
 /**
  * Render the Models section content column.
  * @param props - slot-delivered injected dependencies.
  * @returns the section, or null while the shell has not injected yet.
  */
 export function ModelsSection(props: ModelsSectionProps): ReactNode {
-  const { controller, useSnapshot, api, t } = props
+  const { controller, useSnapshot, api, oauth, t } = props
   if (controller === undefined || useSnapshot === undefined || api === undefined || t === undefined) return null
-  return <Loaded injected={{ controller, useSnapshot, api, t }} />
+  return <Loaded injected={{ controller, useSnapshot, api, oauth: oauth ?? INERT_OAUTH, t }} />
 }
 
 function Loaded({ injected }: { injected: ModelsSectionInjected }): ReactNode {
-  const { controller, api, t } = injected
+  const { controller, api, oauth, t } = injected
   const state = injected.useSnapshot(snapshot => snapshot)
   const [editing, setEditing] = useState<EditorTarget | undefined>(undefined)
   const [adding, setAdding] = useState(false)
@@ -299,6 +317,7 @@ function Loaded({ injected }: { injected: ModelsSectionInjected }): ReactNode {
                   namespace,
                   api,
                   t,
+                  oauthStore: oauth,
                   readOnly: !state.writable,
                   onClose: (changed) => { closeSetup(changed, target) },
                 })}
@@ -383,6 +402,7 @@ function Loaded({ injected }: { injected: ModelsSectionInjected }): ReactNode {
                   namespace,
                   api,
                   t,
+                  oauthStore: oauth,
                   readOnly: !state.writable,
                   onClose: (changed) => { closeEditor(changed, target) },
                 })
@@ -422,6 +442,8 @@ function Loaded({ injected }: { injected: ModelsSectionInjected }): ReactNode {
                 settingsPath={addTarget.settingsPath}
                 api={api}
                 t={t}
+                oauth={addTarget.oauth === true}
+                oauthStore={oauth}
                 readOnly={!state.writable}
                 onClose={(changed) => { closeEditor(changed, addTarget) }}
               />

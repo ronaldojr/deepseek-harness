@@ -145,6 +145,15 @@ async function mountSection(options: Parameters<typeof scriptedFace>[0] = {}) {
     controller,
     useSnapshot: bindSnapshotSelector(controller.store),
     api: scripted.face as never,
+    oauth: {
+      subscribe: () => () => {},
+      get: () => undefined,
+      load: async () => {},
+      login: async () => undefined,
+      cancel: async () => {},
+      disconnect: async () => undefined,
+      publish: () => {},
+    },
     t,
   }
   render(<ModelsSection {...injected} />)

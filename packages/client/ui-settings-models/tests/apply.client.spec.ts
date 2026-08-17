@@ -22,6 +22,14 @@ async function bench(isLoopback = true) {
   // The plugins inject `remote`; forwarded events reach them through the
   // same `$dispatch` handoff the connection sink makes.
   new TestRemote(ctx)
+  // The oauth namespace stub: apply never calls its methods, but the injected
+  // key must resolve the way the mounted Remote contribution would.
+  ctx.provide('remote.oauth', {
+    status: async () => ({ ok: true, value: undefined }),
+    login: async () => ({ ok: true, value: { accepted: true } }),
+    cancel: async () => ({ ok: true, value: { accepted: true } }),
+    disconnect: async () => ({ ok: true, value: { accepted: true } }),
+  })
   // The apply path only captures the wire face; no call leaves this fake
   // until a section actually loads.
   ctx.provide('connection', { api: {}, isLoopback } as never)
@@ -43,7 +51,7 @@ function declare(slots: SlotRegistry): () => void {
 
 describe('ui-settings-models apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'connection', 'remote'])
+    expect(inject).toEqual(['slots', 'locale', 'connection', 'remote', 'remote.oauth'])
   })
 
   it('registers the models nav entry for declarations before or after apply', async () => {

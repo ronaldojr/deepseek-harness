@@ -891,6 +891,32 @@ Depends on: [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts)
 
 Source: [`packages/llm/llm-deepseek/src/index.ts:62`](../packages/llm/llm-deepseek/src/index.ts)
 
+<a id="deepseek-aidsh-llm-oauth"></a>
+
+## `@deepseek-ai/dsh-llm-oauth`
+
+```ts config-catalog
+/** Deploy-time tunables; every field except `storePath` has a schema default. */
+export interface Config {
+  /** Absolute or harness-home-relative path of the durable credential store file. */
+  storePath: string
+  /** Provider route keys whose built-in flows activate. */
+  providers?: string[]
+  /** Credential-reference overrides by provider; absent derives `<PROVIDER>_API_KEY`. */
+  credentialRefs?: Record<string, string>
+  /** Cadence of the background refresh scan. */
+  refreshIntervalMs?: number
+  /** How early before expiry a refresh is due. */
+  refreshAheadMs?: number
+  /** Guard that cancels a login whose browser authorization never arrives. */
+  loginTimeoutMs?: number
+  /** Settings namespace whose provider profiles record the connection (apiKeyEnv, baseURL). */
+  settingsNs?: string
+}
+```
+
+Source: [`packages/llm/llm-oauth/src/service.ts:57`](../packages/llm/llm-oauth/src/service.ts)
+
 <a id="deepseek-aidsh-llm-pi-ai"></a>
 
 ## `@deepseek-ai/dsh-llm-pi-ai`

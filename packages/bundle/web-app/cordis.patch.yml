@@ -99,6 +99,15 @@
     - id: api-gateway
       name: '@deepseek-ai/dsh-host-apiproxy'
 
+    # OAuth login + background token refresh for subscription-authenticated
+    # providers (github-copilot ships built in). The store file lives beside
+    # the credentials document, owner-only; the service writes refreshed
+    # access tokens into the credentials seam under each provider's reference.
+    - id: llm-oauth
+      name: '@deepseek-ai/dsh-llm-oauth'
+      config:
+        storePath: !!js dshHomePath('oauth-credentials.json')
+
     - id: cordis-host-runner
       name: '@deepseek-ai/dsh-cordis-host-runner'
 

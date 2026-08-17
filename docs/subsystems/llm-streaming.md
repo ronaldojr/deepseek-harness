@@ -385,6 +385,35 @@ interface LlmConfigurableProvider {
    * from outside.
    */
   declared?: boolean
+  /**
+   * Whether the adapter ships an OAuth login method for this route, so
+   * configuration surfaces can offer a connect flow beside the API-key
+   * field. False (never absent) means the route authenticates by key alone.
+   */
+  oauth?: boolean
+}
+```
+
+```ts type-equiv
+/** One provider's connection state, as both an RPC answer and an event payload. */
+interface OauthConnectionView {
+  /** Provider route key this view describes. */
+  provider: string
+  /** Current lifecycle phase. */
+  phase: OauthPhase
+  /** Device-flow facts; present only while {@link phase} is `device-code`. */
+  device?: OauthDeviceCode
+  /**
+   * Human-readable state message. Present for `connecting`, `failed`, and a
+   * `connected` provider whose background refresh failed.
+   */
+  message?: string
+  /** Epoch millis the stored access token expires; present only while `connected`. */
+  expiresAt?: number
+  /** Reference the service writes refreshed access tokens into. */
+  credentialRef?: CredentialRef
+  /** Whether the background refresher is scheduled for this provider. */
+  autoRefresh: boolean
 }
 ```
 
@@ -837,6 +866,61 @@ stream(options: GenerateOptions): AsyncIterable<StreamChunk>
 
 Source: [`packages/llm/llm/src/index.ts:284`](../../packages/llm/llm/src/index.ts)
 
+<a id="ctxoauth--llmoauthservice"></a>
+
+### `ctx.oauth` — `LlmOauthService`
+
+OAuth service. Remote methods `status`/`login`/`cancel`/`disconnect` form the `oauth` namespace the Typert gateway serves to browser clients.
+
+```ts cordis-catalog
+/**
+ * Register one provider's flow at runtime — the extension point for
+ * providers this package does not ship.
+ * @param flow - the flow to register.
+ * @returns a disposer removing the flow.
+ */
+registerFlow(flow: OauthFlow): () => void
+
+/**
+ * Report one provider's connection state.
+ * @param request - provider route key.
+ * @returns the provider's current view, or `provider-unknown`.
+ */
+@Remote('status') status(request: OauthProviderRequest): Promise<OauthResult<OauthConnectionView>>
+
+/**
+ * Start the provider's device-flow login. Progress flows through the
+ * `oauth/state` event; the method itself only acknowledges admission.
+ * @param request - provider route key.
+ * @returns accepted, or a business rejection.
+ */
+@Remote('login') login(request: OauthProviderRequest): Promise<OauthResult<OauthAccepted>>
+
+/**
+ * Cancel one in-flight login.
+ * @param request - provider route key.
+ * @returns accepted.
+ */
+@Remote('cancel') cancel(request: OauthProviderRequest): Promise<OauthResult<OauthAccepted>>
+
+/**
+ * Remove the provider's stored credential and unset its credential
+ * reference. Settings profile fields are left untouched.
+ * @param request - provider route key.
+ * @returns accepted.
+ */
+@Remote('disconnect') async disconnect(request: OauthProviderRequest): Promise<OauthResult<OauthAccepted>>
+
+/**
+ * Run one refresh scan now: every stored provider whose token is due (its
+ * expiry within {@link Config.refreshAheadMs}) gets one serialized refresh.
+ * The interval timer calls this; tests and operators may call it directly.
+ */
+scanRefresh(): void
+```
+
+Source: [`packages/llm/llm-oauth/src/service.ts:93`](../../packages/llm/llm-oauth/src/service.ts)
+
 <a id="llm-events"></a>
 
 ### `llm/*` events
@@ -885,4 +969,28 @@ Waterfall around every streaming model call (retry, replay, routing). Bound to t
 ```
 
 Source: [`packages/llm/llm/src/index.ts:64`](../../packages/llm/llm/src/index.ts)
+
+<a id="oauth-events"></a>
+
+### `oauth/*` events
+
+<a id="oauthstate--emit"></a>
+
+#### `oauth/state` — emit
+
+A provider connection moved to a new lifecycle phase (device code ready, connected, failed, disconnected). The payload is the full post-transition view, so a consumer never needs to join this event against a query.
+
+```ts cordis-catalog
+/**
+ * A provider connection moved to a new lifecycle phase (device code
+ * ready, connected, failed, disconnected). The payload is the full
+ * post-transition view, so a consumer never needs to join this event
+ * against a query.
+ * @param view - the provider's new connection state.
+ * @mode emit
+ */
+'oauth/state'(view: OauthConnectionView): void
+```
+
+Source: [`packages/llm/llm-oauth/src/types.ts:58`](../../packages/llm/llm-oauth/src/types.ts)
 <!-- END GENERATED cordis-surface -->

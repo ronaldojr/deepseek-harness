@@ -33,6 +33,8 @@ import {
 import { apiKeyFailure } from './apiKey.ts'
 import { EditorFooter } from './EditorFooter.tsx'
 import { ModelListEditor } from './ModelListEditor.tsx'
+import { OauthConnectBlock } from './OauthConnectBlock.tsx'
+import type { OauthView } from './oauth-store.ts'
 import { deriveKeyRef, messageOf, protocolChoices } from './store.ts'
 import type { en } from './locales.ts'
 import styles from './ModelsSection.module.css'
@@ -73,6 +75,10 @@ export interface ProviderEditorProps {
   credentialOnly?: boolean
   /** Require a newly entered credential before this editor can submit. */
   credentialRequired?: boolean
+  /** Whether the adapter ships an OAuth login method for this route. */
+  oauth?: boolean
+  /** Shared OAuth connection-state store, required when {@link oauth} is true. */
+  oauthStore?: OauthView
   /** Give the credential field initial focus when this editor mounts. */
   autoFocusCredential?: boolean
   /** Override the dismiss action copy. */
@@ -376,6 +382,9 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
           />
           {shownKeyFailure === undefined ? null : <p className={styles['error']}>{t(shownKeyFailure)}</p>}
         </div>
+        {props.oauth !== true || props.oauthStore === undefined
+          ? null
+          : <OauthConnectBlock provider={props.provider} store={props.oauthStore} t={t} disabled={disabled} />}
         {props.credentialOnly === true ? null : <details className={styles['customized']}>
           <summary className={styles['customizedSummary']}>{t('customized')}</summary>
           <div className={styles['customizedBody']}>

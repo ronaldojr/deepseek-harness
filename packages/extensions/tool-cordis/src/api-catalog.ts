@@ -907,6 +907,48 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'oauth',
+    summary: 'OAuth service.',
+    description: 'OAuth service. Remote methods `status`/`login`/`cancel`/`disconnect` form the `oauth` namespace the Typert gateway serves to browser clients.',
+    methods: [
+      {
+        signature: 'registerFlow(flow: OauthFlow): () => void',
+        description: 'Register one provider\'s flow at runtime — the extension point for providers this package does not ship.',
+        parameters: [{ name: 'flow', description: 'the flow to register.' }],
+        returns: 'a disposer removing the flow.',
+      },
+      {
+        signature: '@Remote(\'status\') status(request: OauthProviderRequest): Promise<OauthResult<OauthConnectionView>>',
+        description: 'Report one provider\'s connection state.',
+        parameters: [{ name: 'request', description: 'provider route key.' }],
+        returns: 'the provider\'s current view, or `provider-unknown`.',
+      },
+      {
+        signature: '@Remote(\'login\') login(request: OauthProviderRequest): Promise<OauthResult<OauthAccepted>>',
+        description: 'Start the provider\'s device-flow login. Progress flows through the `oauth/state` event; the method itself only acknowledges admission.',
+        parameters: [{ name: 'request', description: 'provider route key.' }],
+        returns: 'accepted, or a business rejection.',
+      },
+      {
+        signature: '@Remote(\'cancel\') cancel(request: OauthProviderRequest): Promise<OauthResult<OauthAccepted>>',
+        description: 'Cancel one in-flight login.',
+        parameters: [{ name: 'request', description: 'provider route key.' }],
+        returns: 'accepted.',
+      },
+      {
+        signature: '@Remote(\'disconnect\') async disconnect(request: OauthProviderRequest): Promise<OauthResult<OauthAccepted>>',
+        description: 'Remove the provider\'s stored credential and unset its credential reference. Settings profile fields are left untouched.',
+        parameters: [{ name: 'request', description: 'provider route key.' }],
+        returns: 'accepted.',
+      },
+      {
+        signature: 'scanRefresh(): void',
+        description: 'Run one refresh scan now: every stored provider whose token is due (its expiry within Config.refreshAheadMs) gets one serialized refresh. The interval timer calls this; tests and operators may call it directly.',
+        parameters: [],
+      },
+    ],
+  },
+  {
     key: 'permissionPresets',
     summary: 'Owns the deployment\'s permission presets and their write path.',
     description: 'Owns the deployment\'s permission presets and their write path. Requires a confining `ctx.shell` executor and `ctx.approval`; unmatched knob values are reported as CUSTOM_PRESET, not an error.',
@@ -2398,6 +2440,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [{ name: 'options', description: 'the full request. A LOOP-built request carries the process-local {@link markAgentLoopRequest} identity and arrives deep-frozen (mutation throws): its content is a pure function of the session log (the reconstructability Agent Note), so listeners read it, never rewrite it. Hand-built calls do not carry that marker; their messages already obey the immutable creation contract.' }],
   },
   {
+    name: 'oauth/state',
+    mode: 'emit',
+    signature: '\'oauth/state\'(view: OauthConnectionView): void',
+    summary: 'A provider connection moved to a new lifecycle phase (device code ready, connected, failed, disconnected).',
+    description: 'A provider connection moved to a new lifecycle phase (device code ready, connected, failed, disconnected). The payload is the full post-transition view, so a consumer never needs to join this event against a query.',
+    parameters: [{ name: 'view', description: 'the provider\'s new connection state.' }],
+  },
+  {
     name: 'session-telemetry/record',
     mode: 'waterfall',
     signature: '\'session-telemetry/record\'(record: SessionTelemetryRecord, next: () => SessionTelemetryRecord): SessionTelemetryRecord',
@@ -3275,7 +3325,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'LlmConfigurableProvider',
-    declaration: 'export interface LlmConfigurableProvider {\n    provider: string;\n    displayName: string;\n    settingsNs: string;\n    settingsPath: readonly string[];\n    declared?: boolean;\n}',
+    declaration: 'export interface LlmConfigurableProvider {\n    provider: string;\n    displayName: string;\n    settingsNs: string;\n    settingsPath: readonly string[];\n    declared?: boolean;\n    oauth?: boolean;\n}',
   },
   {
     name: 'LlmDiscoveredModel',
@@ -3464,6 +3514,46 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ModelModalityMap',
     declaration: 'export interface ModelModalityMap {\n    text: \'text\';\n    image: \'image\';\n}',
+  },
+  {
+    name: 'OauthAccepted',
+    declaration: 'export interface OauthAccepted {\n    accepted: true;\n}',
+  },
+  {
+    name: 'OauthConnectionView',
+    declaration: 'export interface OauthConnectionView {\n    provider: string;\n    phase: OauthPhase;\n    device?: OauthDeviceCode;\n    message?: string;\n    expiresAt?: number;\n    credentialRef?: CredentialRef;\n    autoRefresh: boolean;\n}',
+  },
+  {
+    name: 'OauthDeviceCode',
+    declaration: 'export interface OauthDeviceCode {\n    verificationUri: string;\n    userCode: string;\n}',
+  },
+  {
+    name: 'OauthErrorCode',
+    declaration: 'export type OauthErrorCode = \'provider-unknown\' | \'provider-no-oauth\' | \'login-in-flight\' | \'not-connected\' | \'login-failed\';',
+  },
+  {
+    name: 'OauthFailure',
+    declaration: 'export interface OauthFailure {\n    code: OauthErrorCode;\n    message: string;\n}',
+  },
+  {
+    name: 'OauthFlow',
+    declaration: 'export interface OauthFlow {\n    provider: string;\n    login(notify: (event: OauthLoginEvent) => void, signal: AbortSignal): Promise<OAuthCredential>;\n    refresh(credential: OAuthCredential, signal?: AbortSignal): Promise<OAuthCredential>;\n    toAuth(credential: OAuthCredential): Promise<ModelAuth>;\n}',
+  },
+  {
+    name: 'OauthLoginEvent',
+    declaration: 'export type OauthLoginEvent = {\n    type: \'device-code\';\n    verificationUri: string;\n    userCode: string;\n} | {\n    type: \'connecting\';\n    message: string;\n};',
+  },
+  {
+    name: 'OauthPhase',
+    declaration: 'export type OauthPhase = \'disconnected\' | \'connecting\' | \'device-code\' | \'connected\' | \'failed\';',
+  },
+  {
+    name: 'OauthProviderRequest',
+    declaration: 'export interface OauthProviderRequest {\n    provider: string;\n}',
+  },
+  {
+    name: 'OauthResult',
+    declaration: 'export type OauthResult<T> = {\n    ok: true;\n    value: T;\n} | {\n    ok: false;\n    error: OauthFailure;\n};',
   },
   {
     name: 'ObjectJsonSchema',

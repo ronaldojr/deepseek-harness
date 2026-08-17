@@ -115,6 +115,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Adapters register provider implementations; the loop and compaction call the provider-neutral stream service.',
   },
   {
+    key: 'oauth',
+    pkg: 'llm-oauth',
+    title: 'OAuth provider connections',
+    mode: 'core',
+    consumers: ['llm-pi-ai'],
+    note: 'Owns device-flow login, durable credentials, and background token refresh; adapters consume refreshed access tokens through the credentials seam.',
+  },
+  {
     key: 'tokenMeter',
     pkg: 'token-meter',
     title: 'Replay token measurement',
