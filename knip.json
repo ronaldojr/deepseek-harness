@@ -83,6 +83,18 @@
         "tests/**/*.ts"
       ]
     },
+    "packages/llm/llm-oauth": {
+      "entry": [
+        "tests/**/*.spec.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ],
+      "ignoreDependencies": [
+        "zod"
+      ]
+    },
     "packages/host/webserver": {
       "entry": [
         "tests/**/*.spec.ts"
