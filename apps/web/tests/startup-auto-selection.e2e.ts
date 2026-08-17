@@ -69,10 +69,11 @@ describe('web e2e: startup auto-selection', () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-first-workspace-stable-tree'))
     await page.locator(`${ROOT_PHASE}[data-phase="hero"]`).waitFor({ timeout: 15_000 })
     const headline = page.getByText('Into the Unknown', { exact: true })
-    const fish = headline.locator('xpath=preceding-sibling::span[1]/*[name()="svg"]')
+    // The Sabiá mark is an embedded-image brand mark, not an ink svg: it keeps
+    // its own colors and only the hover motion is shared with the headline.
+    const fish = headline.locator('xpath=preceding-sibling::span[1]/*[name()="img"]')
     const fishHitbox = fish.locator('..')
-    expect(await fish.evaluate(node => getComputedStyle(node).color))
-      .toBe(await headline.evaluate(node => getComputedStyle(node).color))
+    expect(await fish.getAttribute('src')).toMatch(/^data:image\/png;base64,/)
     await fishHitbox.hover()
     expect(await fish.evaluate(node => getComputedStyle(node).animationName)).not.toBe('none')
     await page.evaluate(() => {
