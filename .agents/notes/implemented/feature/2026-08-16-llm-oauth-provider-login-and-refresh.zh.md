@@ -12,7 +12,7 @@ Status: implemented
 
 **新增宿主服务 `packages/llm/llm-oauth`。** `ctx.oauth` 端到端拥有一条提供方连接：通过转发的 `oauth/state` Cordis 事件驱动的设备码登录、持久化且仅属主可读写的存储（`$DSH_HOME/oauth-credentials.json`，经 `dsh-atomic-write` 写入）、在 `refreshAheadMs` 内到期时重新签发令牌并发布到**凭证接缝**的后台扫描，以及断开连接路径。经凭证接缝发布使 `llm-pi-ai` 的请求路径保持不变：适配器照旧解析 API 密钥，插件只负责让这把密钥保持新鲜。连接成功后，若没有任何层固定 `apiKeyEnv` 与 `baseURL`，服务会把这两项写入档案，使全新连接无需手动步骤。启动时重新发布所有已存储令牌；稍后注册的流程也会重新发布自己的已存储凭证。
 
-**手写交换、沿用上游 `toAuth`。** GitHub Copilot 流程直接实现两个 GitHub 端点（设备码 + `/copilot_internal/v2/token`），避开 pi-ai `login`/`refresh` 中上述失败模式的策略请求尾部；从令牌 `proxy-ep` 声明推导 base URL 仍沿用上游 pi-ai 的 `toAuth`。流程接口（`login`/`refresh`/`toAuth`）即运行时扩展点：`ctx.oauth.registerFlow(flow)`。
+**手写交换、沿用上游 `toAuth`。** GitHub Copilot 流程直接实现两个 GitHub 端点（设备码 + `/copilot_internal/v2/token`），避开 pi-ai `login`/`refresh` 中上述失败模式的策略请求尾部；从令牌 `proxy-ep` 声明推导 base URL 仍沿用上游 pi-ai 的 `toAuth`。OpenAI Codex（ChatGPT）流程以同样形态内建其旁，协议事实见 [OpenAI Codex OAuth 笔记](2026-08-18-openai-codex-chatgpt-oauth-login.md)。流程接口（`login`/`refresh`/`toAuth`）即运行时扩展点：`ctx.oauth.registerFlow(flow)`。
 
 **Typert Remote `oauth`。** 服务是 `TypertRemoteService`（`status`/`login`/`cancel`/`disconnect`）；生成的 `oauth.*` 命名空间挂载进 api-remotes 客户端装配，`oauth/state` 加入 `API_REMOTE_FORWARDED_EVENTS`，载荷词汇经 `@deepseek-ai/dsh-api-remotes/client` 再导出。
 
@@ -30,4 +30,4 @@ Status: implemented
 
 ## 后果
 
-`dsh web` 组合可挂载该服务（`storePath: !!js dshHomePath('oauth-credentials.json')`）；模型页为每个支持 OAuth 的目录提供方显示「连接 GitHub」，已连接的提供方在 GitHub 授权本身过期（约数小时）前无需人工干预即可自动续期，过期以 `failed` 阶段呈现。存储为服务自有 JSON，而非用户可编辑配置。企业 GitHub 域与按账号的模型策略启用仍为待办。
+`dsh web` 组合可挂载该服务（`storePath: !!js dshHomePath('oauth-credentials.json')`）；模型页为每个支持 OAuth 的目录提供方显示连接区——「连接 GitHub」与「连接 OpenAI（ChatGPT Plus/Pro）」——已连接的提供方在授权本身过期（GitHub 约数小时）前无需人工干预即可自动续期，过期以 `failed` 阶段呈现。存储为服务自有 JSON，而非用户可编辑配置。企业 GitHub 域与按账号的模型策略启用仍为待办。

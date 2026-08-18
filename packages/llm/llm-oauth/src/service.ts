@@ -7,8 +7,9 @@
  * persistence under an owner-only store file, a background refresher that
  * re-mints the short-lived access token before expiry and publishes it into
  * the credentials seam (so the request path of a consuming LLM adapter stays
- * unchanged), and a disconnect path that removes both. The GitHub Copilot
- * flow ships built in; other providers register their flow at runtime.
+ * unchanged), and a disconnect path that removes both. The GitHub Copilot and
+ * OpenAI Codex (ChatGPT Plus/Pro) flows ship built in; other providers
+ * register their flow at runtime.
  * @module @deepseek-ai/dsh-llm-oauth
  */
 
@@ -22,6 +23,7 @@ import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import type { ModelAuth, OAuthCredential } from '@earendil-works/pi-ai'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { githubCopilotFlow, isOauthRefreshRejected } from './github-copilot.ts'
+import { openAiCodexFlow } from './openai-codex.ts'
 import type {
   OauthAccepted,
   OauthConnectionView,
@@ -78,7 +80,10 @@ declare module '@deepseek-ai/cordis' {
 }
 
 /** The flows this package ships; keyed by provider route id. */
-const BUILTIN_FLOWS = new Map<string, OauthFlow>([[githubCopilotFlow.provider, githubCopilotFlow]])
+const BUILTIN_FLOWS = new Map<string, OauthFlow>([
+  [githubCopilotFlow.provider, githubCopilotFlow],
+  [openAiCodexFlow.provider, openAiCodexFlow],
+])
 
 /** One in-flight login's surface state. */
 type OauthLoginState =
@@ -95,7 +100,7 @@ export class LlmOauthService extends TypertRemoteService {
 
   static Config: s<Config> = s.object({
     storePath: s.string().required(),
-    providers: s.array(s.string()).default(['github-copilot']),
+    providers: s.array(s.string()).default(['github-copilot', 'openai-codex']),
     credentialRefs: s.dict(s.string()).default({}),
     refreshIntervalMs: s.number().min(1000).default(60_000),
     refreshAheadMs: s.number().min(1000).default(5 * 60_000),

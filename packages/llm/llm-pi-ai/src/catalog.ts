@@ -162,6 +162,20 @@ export function catalogProviderTakesApiKey(provider: string): boolean {
 }
 
 /**
+ * Whether the installed catalog provider for one route declares an OAuth
+ * method. The llm-oauth service owns that method end to end: a connect mints
+ * and stores the credential, publishes its bearer into the credentials seam,
+ * and this adapter then hands the seam key to pi-ai as the api-key override —
+ * so the request path stays unchanged for OAuth-only providers.
+ * @param provider - provider route key.
+ * @returns whether the catalog provider ships an OAuth method; false for a
+ *   route pi-ai does not ship.
+ */
+export function catalogProviderHasOAuth(provider: string): boolean {
+  return catalogProvider(provider)?.auth.oauth !== undefined
+}
+
+/**
  * The installed catalog models for one route, indexed by model id.
  * @param provider - provider route key.
  * @returns catalog models by id; empty for a route pi-ai does not ship.

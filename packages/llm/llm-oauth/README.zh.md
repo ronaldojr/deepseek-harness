@@ -4,7 +4,7 @@
 
 为「按订阅鉴权、而非 API 密钥」的 LLM 提供方提供一等公民的 OAuth 登录能力。该服务拥有一条提供方连接的完整生命周期：通过转发事件驱动的设备码登录、持久化凭证存储、在后台重新签发短期访问令牌并写入凭证接缝的续期器，以及断开连接路径。「模型」设置页会为每个适配器声明了 OAuth 方法的提供方渲染连接流程。
 
-GitHub Copilot 流程内置提供；其他提供方可在运行时注册自己的流程。
+GitHub Copilot 与 OpenAI Codex（ChatGPT Plus/Pro）流程内置提供；其他提供方可在运行时注册自己的流程。
 
 ## 插件
 
@@ -13,7 +13,7 @@ GitHub Copilot 流程内置提供；其他提供方可在运行时注册自己�
 | 配置 | 默认值 | 含义 |
 |---|---|---|
 | `storePath` | — | 持久化凭证存储文件路径（JSON，仅属主可读写）。 |
-| `providers` | `['github-copilot']` | 启用内置流程的提供方路由键。 |
+| `providers` | `['github-copilot', 'openai-codex']` | 启用内置流程的提供方路由键。 |
 | `credentialRefs` | `{}` | 按提供方覆盖凭证引用；缺省时派生 `<PROVIDER>_API_KEY`。 |
 | `refreshIntervalMs` | `60_000` | 后台续期扫描的周期。 |
 | `refreshAheadMs` | `300_000` | 到期前多久视为需要续期。 |
@@ -45,7 +45,7 @@ GitHub Copilot 流程内置提供；其他提供方可在运行时注册自己�
 
 ## 扩展点
 
-`ctx.oauth.registerFlow(flow)` 激活某提供方的 `login`/`refresh`/`toAuth` 实现；返回的 disposer 将其移除。内置的 GitHub Copilot 流程直接实现设备码登录与 `/copilot_internal/v2/token` 交换（pi-ai 自带的 `login` 还会执行一串极易触发限流的模型策略请求，可能拒绝一个已经拿到令牌的登录），而 base URL 推导仍沿用上游 pi-ai 的 `toAuth`。
+`ctx.oauth.registerFlow(flow)` 激活某提供方的 `login`/`refresh`/`toAuth` 实现；返回的 disposer 将其移除。内置的 GitHub Copilot 流程直接实现设备码登录与 `/copilot_internal/v2/token` 交换（pi-ai 自带的 `login` 还会执行一串极易触发限流的模型策略请求，可能拒绝一个已经拿到令牌的登录），而 base URL 推导仍沿用上游 pi-ai 的 `toAuth`。内置的 OpenAI Codex 流程执行 OpenAI 的 `auth.openai.com` 设备授权（完成时返回授权码加 PKCE verifier），经普通 `authorization_code` grant 交换、经 `refresh_token` grant 续期；`toAuth` 同样沿用目录提供方自己的方法，推导出 `https://chatgpt.com/backend-api`。
 
 ## 模型体验
 
@@ -58,6 +58,7 @@ GitHub Copilot 流程内置提供；其他提供方可在运行时注册自己�
 ## 已知限制与待办
 
 - **仅支持公开 github.com** —— 内置流程假定公开 GitHub 域；企业域推迟支持。
+- **OpenAI 仅设备登录** —— 内置流程只实现设备路径；pi-ai 的浏览器 PKCE 兜底（loopback 回调）推迟支持。
 - **短期访问令牌** —— Copilot 令牌约 30 分钟过期；服务会自动续期，但 GitHub 授权本身数小时后过期，需要一次新的设备登录，以 `failed` 阶段呈现。
 - **存储为 JSON 而非 YAML** —— 服务自有状态文件，不同于用户可编辑的凭证文档。
 - **不做模型策略启用** —— 流程跳过 pi-ai 的模型策略请求；账号未启用的模型会被提供方在中途拒绝。

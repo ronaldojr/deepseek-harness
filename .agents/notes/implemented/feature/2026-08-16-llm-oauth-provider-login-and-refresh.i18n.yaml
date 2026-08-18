@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-16-llm-oauth-provider-login-and-refresh.md
-2026-08-16-llm-oauth-provider-login-and-refresh.md: 41edf05c17395d1751997ee858c536c7debd48ba
-2026-08-16-llm-oauth-provider-login-and-refresh.zh.md: 054954bc8ef0c0d3acd59b193576810bb48bc9c0
+2026-08-16-llm-oauth-provider-login-and-refresh.md: 059460d14d77d786b6c2a5d1be5775f9028a49c9
+2026-08-16-llm-oauth-provider-login-and-refresh.zh.md: 83804aa259f4168b8100f5b78d857b229d055d2c

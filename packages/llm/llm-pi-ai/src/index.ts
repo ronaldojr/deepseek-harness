@@ -61,7 +61,7 @@ import { assertUsableApiKey, LlmError } from '@deepseek-ai/dsh-llm'
 import type { AdapterRegistrationHandle, DirectoryRegistrationHandle, LlmConfigurableProvider } from '@deepseek-ai/dsh-llm'
 import { deepEqualJson, installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { PiAiAdapter } from './adapter.ts'
-import { catalogProvider, catalogProviderIds, catalogProviderTakesApiKey } from './catalog.ts'
+import { catalogProvider, catalogProviderHasOAuth, catalogProviderIds, catalogProviderTakesApiKey } from './catalog.ts'
 import { assertServiceable, Config, resolveProfiles } from './config.ts'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
 import { discoverModels } from './discovery.ts'
@@ -137,13 +137,15 @@ function directoryEntries(
       oauth: catalogProvider(provider)?.auth.oauth !== undefined,
     })
   }
-  // A provider whose only native method is OAuth leaves this adapter nothing
-  // to authenticate with, so offering it would put a card on the settings page
-  // whose own posture — no key, credentials discovered by the provider — fails
-  // every request. Catalog *membership* is unaffected, so `declare` above still
-  // answers what pi-ai ships.
+  // An OAuth-only provider is declared too: the llm-oauth service owns its
+  // authentication end to end (connect stores the credential, publishes the
+  // bearer into the credentials seam, and this adapter hands that seam key to
+  // pi-ai as the api-key override). Before a connect there is no profile and
+  // therefore no registered route, so requests fail with `NO_ADAPTER` rather
+  // than a card whose posture is broken. Catalog *membership* is unaffected,
+  // so `declare` above still answers what pi-ai ships.
   for (const provider of catalog) {
-    if (catalogProviderTakesApiKey(provider)) declare(provider, provider)
+    if (catalogProviderTakesApiKey(provider) || catalogProviderHasOAuth(provider)) declare(provider, provider)
   }
   for (const [provider, profile] of profiles) declare(provider, profile.displayName)
   return [...entries.values()]

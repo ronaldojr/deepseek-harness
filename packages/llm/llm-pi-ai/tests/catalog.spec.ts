@@ -935,20 +935,20 @@ describe('configurable-provider directory', () => {
     expect(ctx.llm.listConfigurableProviders()).toHaveLength(catalogOnly)
   })
 
-  it('withholds a catalog route this adapter cannot authenticate', async () => {
+  it('offers an OAuth-only catalog route for the connect flow its seam serves', async () => {
     const ctx = await harness({})
     const offered = ctx.llm.listConfigurableProviders().map(entry => entry.provider)
 
     // `openai-codex` is the one installed provider that authenticates through
-    // OAuth alone. pi-ai resolves OAuth only from a *stored* credential, this
-    // adapter constructs its collection with no credential store, and nothing
-    // here runs a login flow — so every request on such a route fails with
-    // `Provider is not configured` before it goes out. Offering it would put a
-    // provider on the settings page that no amount of configuration can make
-    // work.
-    expect(offered).not.toContain('openai-codex')
-    // A provider that offers OAuth *beside* an api-key method keeps its entry:
-    // the key is a path this adapter can serve.
+    // OAuth alone. The llm-oauth service owns that method end to end: a
+    // connect publishes the minted bearer into the credentials seam, and this
+    // adapter hands that seam key to pi-ai as the api-key override — so the
+    // settings surface may offer the route with its connect flow.
+    expect(offered).toContain('openai-codex')
+    expect(ctx.llm.listConfigurableProviders().find(entry => entry.provider === 'openai-codex')?.oauth)
+      .toBe(true)
+    // A provider that offers OAuth *beside* an api-key method keeps its entry
+    // too: the key is a path this adapter can serve without a connect.
     expect(offered).toContain('anthropic')
     expect(offered).toContain('openai')
   })
