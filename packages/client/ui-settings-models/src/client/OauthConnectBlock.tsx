@@ -64,11 +64,15 @@ export function OauthConnectBlock(props: OauthConnectBlockProps): ReactNode {
 
   if (view === undefined) return null
 
+  // The catalog's human name for the provider's OAuth method ("GitHub
+  // Copilot", "OpenAI (ChatGPT Plus/Pro)"); the route key is the fallback.
+  const providerName = view.name ?? provider
+
   if (view.phase === 'device-code' && view.device !== undefined) {
     return (
       <div className={styles['oauthPanel']}>
         <p className={styles['oauthTitle']}>{t('oauthDeviceTitle')}</p>
-        <p className={styles['oauthHint']}>{t('oauthDeviceHint')}</p>
+        <p className={styles['oauthHint']}>{t('oauthDeviceHint').replace('{provider}', providerName)}</p>
         <div className={styles['oauthRow']}>
           <a className={styles['oauthLink']} href={view.device.verificationUri} target="_blank" rel="noreferrer">
             {view.device.verificationUri}
@@ -140,10 +144,10 @@ export function OauthConnectBlock(props: OauthConnectBlockProps): ReactNode {
 
   return (
     <div className={styles['field']}>
-      <span className={styles['fieldLabel']}>{t('oauthConnect')}</span>
+      <span className={styles['fieldLabel']}>{t('oauthConnect').replace('{provider}', providerName)}</span>
       <button type="button" className={styles['primaryButton']} disabled={props.disabled}
         onClick={() => { void connect() }}>
-        {t('oauthConnect')}
+        {t('oauthConnect').replace('{provider}', providerName)}
       </button>
       {failure === undefined ? null : <p className={styles['error']}>{failure}</p>}
     </div>

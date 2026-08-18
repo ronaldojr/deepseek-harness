@@ -20,7 +20,8 @@ import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import type { CredentialRef } from '@deepseek-ai/dsh-credentials'
 import type { SettingsNamespace, SettingsPathOp } from '@deepseek-ai/dsh-settings'
 import { withFileLock, writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
-import type { ModelAuth, OAuthCredential } from '@earendil-works/pi-ai'
+import type { ModelAuth, OAuthCredential, Provider } from '@earendil-works/pi-ai'
+import { builtinProviders } from '@earendil-works/pi-ai/providers/all'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { githubCopilotFlow, isOauthRefreshRejected } from './github-copilot.ts'
 import { openAiCodexFlow } from './openai-codex.ts'
@@ -434,16 +435,28 @@ export class LlmOauthService extends TypertRemoteService {
     return credentialRef(`${provider.replaceAll('-', '_').toUpperCase()}_API_KEY`)
   }
 
+  /** The catalog's human name for one provider's OAuth method, when pi-ai ships one. */
+  private nameOf(provider: string): string | undefined {
+    return builtinProviders().find((candidate: Provider) => candidate.id === provider)?.auth.oauth?.name
+  }
+
   /** The current surface view, joining login state, stored state, and failures. */
   private viewOf(provider: string): OauthConnectionView {
     const ref = this.refFor(provider)
+    const name = this.nameOf(provider)
     const loginState = this.loginStates.get(provider)
     if (loginState !== undefined) {
       if (loginState.phase === 'device-code') {
-        return { provider, phase: 'device-code', device: loginState.device, credentialRef: ref, autoRefresh: false }
+        return {
+          provider, phase: 'device-code', device: loginState.device, credentialRef: ref, autoRefresh: false,
+          ...(name === undefined ? {} : { name }),
+        }
       }
       if (loginState.phase === 'failed') {
-        return { provider, phase: 'failed', message: loginState.message, credentialRef: ref, autoRefresh: false }
+        return {
+          provider, phase: 'failed', message: loginState.message, credentialRef: ref, autoRefresh: false,
+          ...(name === undefined ? {} : { name }),
+        }
       }
       return {
         provider,
@@ -451,6 +464,7 @@ export class LlmOauthService extends TypertRemoteService {
         ...(loginState.message === undefined ? {} : { message: loginState.message }),
         credentialRef: ref,
         autoRefresh: false,
+        ...(name === undefined ? {} : { name }),
       }
     }
     const stored = this.store[provider]
@@ -463,12 +477,19 @@ export class LlmOauthService extends TypertRemoteService {
         expiresAt: stored.expires,
         credentialRef: ref,
         autoRefresh: this.timer !== undefined,
+        ...(name === undefined ? {} : { name }),
       }
     }
     if (failure !== undefined) {
-      return { provider, phase: 'failed', message: failure, credentialRef: ref, autoRefresh: false }
+      return {
+        provider, phase: 'failed', message: failure, credentialRef: ref, autoRefresh: false,
+        ...(name === undefined ? {} : { name }),
+      }
     }
-    return { provider, phase: 'disconnected', credentialRef: ref, autoRefresh: false }
+    return {
+      provider, phase: 'disconnected', credentialRef: ref, autoRefresh: false,
+      ...(name === undefined ? {} : { name }),
+    }
   }
 
   /** Emit one provider's current view as the forwarded `oauth/state` event. */

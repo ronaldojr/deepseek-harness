@@ -41,6 +41,8 @@ export interface OauthConnectionView {
   expiresAt?: number
   /** Reference the service writes refreshed access tokens into. */
   credentialRef?: CredentialRef
+  /** Human name the connect surface labels this provider with, from the catalog's OAuth method when present. */
+  name?: string
   /** Whether the background refresher is scheduled for this provider. */
   autoRefresh: boolean
 }

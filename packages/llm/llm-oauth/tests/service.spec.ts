@@ -286,4 +286,14 @@ describe('llm-oauth service', () => {
       value: { phase: 'disconnected' },
     })
   })
+
+  it('labels a catalog provider view with its OAuth method name', async () => {
+    // The built-in github-copilot flow registers when the config names it;
+    // the view then carries the catalog's human name for the connect surface.
+    const { service } = await boot({ config: { providers: ['github-copilot'] } })
+    await expect(service.status({ provider: 'github-copilot' })).resolves.toMatchObject({
+      ok: true,
+      value: { provider: 'github-copilot', phase: 'disconnected', name: 'GitHub Copilot' },
+    })
+  })
 })
